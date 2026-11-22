@@ -1,0 +1,10 @@
+Options -Indexes
+RedirectMatch 403 ^/\.sessions(?:/|$)
+
+<FilesMatch "^(config(?:\.example)?\.php|database\.php|wifi\.sqlite(?:-shm|-wal)?)$">
+    Require all denied
+</FilesMatch>
+
+<FilesMatch "\.(?:h|ino|md)$">
+    Require all denied
+</FilesMatch>

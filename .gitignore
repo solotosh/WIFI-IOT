@@ -1,0 +1,8 @@
+/config.php
+/secrets.h
+/wifi.json
+/wifi.sqlite
+/wifi.sqlite-shm
+/wifi.sqlite-wal
+/.sessions/
+/config_*
