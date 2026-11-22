@@ -68,12 +68,15 @@ $paddingTop = 20;
 $plotWidth = $chartWidth - $paddingLeft - 20;
 $plotHeight = $chartHeight - $paddingTop - 38;
 $points = [];
+$chartDots = [];
 $count = count($observations);
 foreach ($observations as $index => $observation) {
     $x = $paddingLeft + ($count > 1 ? ($index / ($count - 1)) * $plotWidth : $plotWidth / 2);
     $rssi = max(-100, min(-20, (int) $observation['rssi']));
     $y = $paddingTop + ((-20 - $rssi) / 80) * $plotHeight;
     $points[] = round($x, 1) . ',' . round($y, 1);
+    $quality = $rssi >= -50 ? 'Excellent' : ($rssi >= -60 ? 'Good' : ($rssi >= -70 ? 'Fair' : 'Weak'));
+    $chartDots[] = ['x' => round($x, 1), 'y' => round($y, 1), 'rssi' => (int) $observation['rssi'], 'channel' => (int) $observation['channel'], 'time' => (string) $observation['received_at'], 'quality' => $quality, 'number' => $index + 1];
 }
 ?>
 <!DOCTYPE html>
@@ -101,8 +104,19 @@ foreach ($observations as $index => $observation) {
         .axis-label { fill: #66758b; font-size: 12px; }
         .signal-area { fill: url(#signalGradient); opacity: .2; }
         .signal-line { fill: none; stroke: #244a90; stroke-width: 3; stroke-linejoin: round; stroke-linecap: round; }
+        .dot { stroke: #fff; stroke-width: 2; cursor: pointer; transition: r .15s; }
+        .dot:hover, .dot:focus { r: 7; outline: none; stroke: #172033; }
+        .dot-excellent,.swatch-excellent { fill: #21884a; background: #21884a; }
+        .dot-good,.swatch-good { fill: #52a447; background: #52a447; }
+        .dot-fair,.swatch-fair { fill: #e0a51b; background: #e0a51b; }
+        .dot-weak,.swatch-weak { fill: #c0392b; background: #c0392b; }
         .error { padding: 14px; border-radius: 10px; background: #ffeded; color: #8c2020; }
         .legend { color: #65738a; font-size: .9rem; }
+        .legend-box { display: flex; gap: 10px 18px; flex-wrap: wrap; align-items: center; padding: 12px 14px; margin: 12px 0; background: #f7f9fc; border-radius: 10px; }
+        .legend-item { display: inline-flex; gap: 7px; align-items: center; }
+        .swatch { width: 11px; height: 11px; border-radius: 50%; display: inline-block; }
+        .dot-detail { min-height: 48px; margin-top: 12px; padding: 12px 14px; border-left: 4px solid #244a90; background: #edf3ff; border-radius: 8px; }
+        .dot-detail strong { color: #244a90; }
         @media (max-width: 760px) { body { padding: 0; } .card { min-height: 100vh; border-radius: 0; } header, main { padding: 18px; } .details { grid-template-columns: repeat(2,minmax(0,1fr)); } }
     </style>
 </head>
@@ -124,7 +138,14 @@ foreach ($observations as $index => $observation) {
             <div class="detail"><span>First / last seen</span><strong><time data-date="<?= escape($router['first_seen']) ?>"><?= escape($router['first_seen']) ?></time><br><time data-date="<?= escape($router['last_seen']) ?>"><?= escape($router['last_seen']) ?></time></strong></div>
         </div>
         <h2>Signal strength over time</h2>
-        <p class="legend">Higher values (closer to −20 dBm) indicate a stronger signal. Showing up to the latest 200 observations.</p>
+        <p class="legend">Each dot is one time-stamped scan of this router. Hover, focus, or click a dot for its exact time, RSSI, channel, and quality. Higher values (closer to −20 dBm) are stronger.</p>
+        <div class="legend-box" aria-label="Signal quality legend">
+            <span class="legend-item"><i class="swatch swatch-excellent"></i><strong>Excellent</strong> −20 to −50 dBm</span>
+            <span class="legend-item"><i class="swatch swatch-good"></i><strong>Good</strong> −51 to −60 dBm</span>
+            <span class="legend-item"><i class="swatch swatch-fair"></i><strong>Fair</strong> −61 to −70 dBm</span>
+            <span class="legend-item"><i class="swatch swatch-weak"></i><strong>Weak</strong> below −70 dBm</span>
+            <span class="legend-item">Line = signal trend · Shaded area = strength relative to −100 dBm</span>
+        </div>
         <div class="chart">
             <?php if ($observations === []): ?><p>No signal observations are available.</p><?php else: ?>
             <svg viewBox="0 0 <?= $chartWidth ?> <?= $chartHeight ?>" role="img" aria-label="Signal strength history chart">
@@ -136,14 +157,34 @@ foreach ($observations as $index => $observation) {
                 <?php $areaPoints = $paddingLeft . ',' . ($paddingTop + $plotHeight) . ' ' . implode(' ', $points) . ' ' . ($paddingLeft + $plotWidth) . ',' . ($paddingTop + $plotHeight); ?>
                 <polygon class="signal-area" points="<?= escape($areaPoints) ?>"/>
                 <polyline class="signal-line" points="<?= escape(implode(' ', $points)) ?>"/>
+                <?php foreach ($chartDots as $dot):
+                    $description = 'Observation ' . $dot['number'] . ': ' . $dot['time'] . ', ' . $dot['rssi'] . ' dBm, channel ' . $dot['channel'] . ', ' . $dot['quality'];
+                ?>
+                    <circle class="dot dot-<?= strtolower($dot['quality']) ?>" cx="<?= $dot['x'] ?>" cy="<?= $dot['y'] ?>" r="5" tabindex="0"
+                        data-number="<?= $dot['number'] ?>" data-time="<?= escape($dot['time']) ?>" data-rssi="<?= $dot['rssi'] ?>" data-channel="<?= $dot['channel'] ?>" data-quality="<?= escape($dot['quality']) ?>" aria-label="<?= escape($description) ?>"><title><?= escape($description) ?></title></circle>
+                <?php endforeach; ?>
                 <text class="axis-label" x="<?= $paddingLeft ?>" y="<?= $chartHeight - 5 ?>"><?= escape($observations[0]['received_at']) ?></text>
                 <text class="axis-label" text-anchor="end" x="<?= $paddingLeft + $plotWidth ?>" y="<?= $chartHeight - 5 ?>"><?= escape($observations[$count - 1]['received_at']) ?></text>
             </svg>
+            <div id="dot-detail" class="dot-detail" role="status" aria-live="polite"><strong>Dot details:</strong> Select any chart dot to inspect that observation.</div>
             <?php endif; ?>
         </div>
     <?php endif; ?>
     </main>
 </div>
-<script>document.querySelectorAll('time[data-date]').forEach((el) => { const date = new Date(el.dataset.date); if (!Number.isNaN(date.getTime())) el.textContent = date.toLocaleString(); });</script>
+<script>
+document.querySelectorAll('time[data-date]').forEach((el) => { const date = new Date(el.dataset.date); if (!Number.isNaN(date.getTime())) el.textContent = date.toLocaleString(); });
+const detail = document.getElementById('dot-detail');
+document.querySelectorAll('.dot').forEach((dot) => {
+    const showDetails = () => {
+        const date = new Date(dot.dataset.time);
+        const time = Number.isNaN(date.getTime()) ? dot.dataset.time : date.toLocaleString();
+        detail.innerHTML = `<strong>Observation #${dot.dataset.number}</strong> · ${time} · <strong>${dot.dataset.rssi} dBm</strong> · Channel ${dot.dataset.channel} · ${dot.dataset.quality}`;
+    };
+    dot.addEventListener('mouseenter', showDetails);
+    dot.addEventListener('focus', showDetails);
+    dot.addEventListener('click', showDetails);
+});
+</script>
 </body>
 </html>
