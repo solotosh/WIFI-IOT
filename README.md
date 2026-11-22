@@ -24,6 +24,8 @@ For the hosted installation, the ESP32 upload endpoint is `https://chocolate-wea
 - `index.php` reads the latest scan, escapes output, sorts networks by signal strength, shows the server receipt time, and warns when data is stale.
 - `history.php` lists every stored network observation with search, summary totals, and pagination.
 - `router.php` shows per-router MAC, channel, band, security, signal statistics, and a signal-over-time chart.
+- `clients.php` displays privacy-limited passive client observations captured for the configured router.
+- `clients-receiver.php` validates and stores authenticated passive-monitor uploads.
 - `login.php` and `auth.php` provide session-based administrator authentication with CSRF protection and throttling.
 - `settings.php` provides an authenticated page for copying the receiver URL and API key.
 - `change-password.php` lets the authenticated administrator securely replace the login password.

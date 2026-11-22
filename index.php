@@ -72,8 +72,8 @@ $isStale = $ageSeconds === null || $ageSeconds > 30;
 <div class="card">
     <header>
         <h1>TOSH IOT SANDBOX DASHBOARD</h1>
-        <p>Nearby access points reported by <?= escape($scan['device'] ?? 'ESP32') ?> · <a href="history.php">View scan history</a> ·
-         <a href="settings.php">Access  API</a></p>
+        <p>Nearby access points reported by <?= escape($scan['device'] ?? 'ESP32') ?> · <a href="history.php">WiFi history</a> ·
+         <a href="clients.php">Observed devices</a> · <a href="settings.php">Access API</a></p>
     </header>
     <main>
         <?php if ($error !== null): ?>
